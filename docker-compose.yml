@@ -1,10 +1,54 @@
-version: "3.3"
-
 services:
+  mongodb:
+    image: mongo
+    restart: always
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=user
+      - MONGO_INITDB_ROOT_PASSWORD=pass
+    cpu_percent: 10
+    cpu_count: 1
+    deploy:
+      resources:
+        limits:
+          cpus: '0.10'
+          memory: 128M
+        reservations:
+          memory: 128M
   app:
     build: .
     command: bash start.sh
     restart: on-failure
     ports:
-      - "80:80"
-      - "8080:8080"
+      - "55770:80"
+      - "55771:8080"
+    depends_on:
+      - mongodb
+    links:
+      - mongodb
+    cpu_percent: 90
+    cpu_count: 1
+    x-develop:
+      watch:
+        - action: sync
+          path: ./config.env
+          target: /usr/src/app/config.env
+        - action: sync
+          path: ./
+          target: /usr/src/app
+          ignore:
+            - downloads/
+            - data/
+            - qBittorrent/data/
+            - qBittorrent/cache/
+            - bot.session
+            - bot.session-journal
+            - log.txt
+            - rlog.txt
+            - rlogserve.txt
+    deploy:
+      resources:
+        limits:
+          cpus: '0.90'
+          memory: 512M
+        reservations:
+          memory: 256M
