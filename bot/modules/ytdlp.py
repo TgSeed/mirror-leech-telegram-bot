@@ -125,7 +125,10 @@ class YtSelection:
                         if item.get('video_ext') == 'none' and item.get('acodec') != 'none':
                             if item.get('audio_ext') == 'm4a':
                                 self.__is_m4a = True
-                            b_name = f"{item['acodec']}-{item['ext']}"
+                            if 'acodec' in item:
+                                b_name = f"{item['acodec']}-{item['ext']}"
+                            elif 'abr' in item:
+                                b_name = f"{item['ext']}-{item['abr']}"
                             v_format = format_id
                         elif item.get('height'):
                             height = item['height']
