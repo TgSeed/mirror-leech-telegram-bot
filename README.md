@@ -26,8 +26,8 @@ In each single file there is a major change from base code, it's almost totally 
 ### TG Upload/Download
 
 - Leech support
-- Splitting
-- Thumbnail for each user
+- Split size for each user or task
+- Thumbnail for each user or task
 - Leech filename prefix for each user. Stolen from [Juned KH](https://github.com/junedkh)
 - Set upload as document or as media for each user
 - 4GB file upload with premium account
@@ -134,6 +134,7 @@ In each single file there is a major change from base code, it's almost totally 
 - Ability to zip/unzip multi links in same directory. Mostly helpful in unziping tg file parts
 - Bulk download from telegram txt file or text message contains links seperated by new line
 - Join splitted files that have splitted before by split(linux pkg)
+- Sample video Generator
 - Almost all repository functions have been improved and many other details can't mention all of them
 - Many bugs have been fixed
 
@@ -155,7 +156,7 @@ In each single file there is a major change from base code, it's almost totally 
 - Extract these filetypes
   > ZIP, RAR, TAR, 7z, ISO, WIM, CAB, GZIP, BZIP2, APM, ARJ, CHM, CPIO, CramFS, DEB, DMG, FAT, HFS, LZH, LZMA, LZMA2, MBR, MSI, MSLZ, NSIS, NTFS, RPM, SquashFS, UDF, VHD, XAR, Z, TAR.XZ
 - Direct links Supported:
-  > mediafire (file/folders), hxfile.co, streamtape.com, streamsb.net, feurl.com, upload.ee, pixeldrain.com, racaty.net, 1fichier.com, 1drv.ms (Only works for file not folder or business account), filelions.com, streamwish.com, send.cm (file/folders), solidfiles.com, linkbox.to (file/folders), shrdsk.me (sharedisk.io), akmfiles.com, wetransfer.com, streamvid.net, gofile.io (file/folders), easyupload.io, mdisk.me (with ytdl), terabox.com (file/folders) (you need to add cookies txt with name) [terabox.txt](https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl).
+  > mediafire (file/folders), hxfile.co, streamtape.com, streamsb.net, streamhub.ink, streamvid.net, doodstream.com, feurl.com, upload.ee, pixeldrain.com, racaty.net, 1fichier.com, 1drv.ms (Only works for file not folder or business account), filelions.com, streamwish.com, send.cm (file/folders), solidfiles.com, linkbox.to (file/folders), shrdsk.me (sharedisk.io), akmfiles.com, wetransfer.com, pcloud.link, gofile.io (file/folders), easyupload.io, mdisk.me (with ytdl), terabox.com (file/folders) (you need to add cookies txt with name) [terabox.txt](https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl).
 
 # How to deploy?
 
@@ -231,7 +232,7 @@ Fill up rest of the fields. Meaning of each field is discussed below. **NOTE**: 
 - `STATUS_LIMIT`: Limit the no. of tasks shown in status message with buttons. Default is `10`. **NOTE**: Recommended limit is `4` tasks. `Int`
 - `EXTENSION_FILTER`: File extensions that won't upload/clone. Separate them by space. `Str`
 - `INCOMPLETE_TASK_NOTIFIER`: Get incomplete task messages after restart. Require database and superGroup. Default is `False`. `Bool`
-- `FILELION_API`: Filelion api key to mirror Filelion links. Get it from [Filelion](https://filelions.com/?op=my_account). `str`
+- `FILELION_API`: Filelion api key to mirror Filelion links. Get it from [Filelion](https://vidhide.com/?op=my_account). `str`
 - `STREAMWISH_API`: Streamwish api key to mirror Streamwish links. Get it from [Streamwish](https://streamwish.com/?op=my_account). `str`
 - `YT_DLP_OPTIONS`: Default yt-dlp options. Check all possible options [HERE](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/YoutubeDL.py#L184) or use this [script](https://t.me/mltb_official_channel/177) to convert cli arguments to api options. Format: key:value|key:value|key:value. Add `^` before integer or float, some numbers must be numeric and some string. `str`
   - Example: "format:bv*+mergeall[vcodec=none]|nocheckcertificate:True"
@@ -265,7 +266,7 @@ Fill up rest of the fields. Meaning of each field is discussed below. **NOTE**: 
 - `AS_DOCUMENT`: Default type of Telegram file upload. Default is `False` mean as media. `Bool`
 - `EQUAL_SPLITS`: Split files larger than **LEECH_SPLIT_SIZE** into equal parts size (Not working with zip cmd). Default is `False`. `Bool`
 - `MEDIA_GROUP`: View Uploaded splitted file parts in media group. Default is `False`. `Bool`.
-- `USER_LEECH`: Upload/Download by user session. Default is `False`. `Bool`
+- `USER_TRANSMISSION`: Upload/Download by user session. Default is `False`. `Bool`
 - `LEECH_FILENAME_PREFIX`: Add custom word to leeched file name. `Str`
 - `LEECH_DUMP_CHAT`: Chat ID or USERNAME to where files would be uploaded. `Int`|`Str`. **NOTE**: Only available for superGroup/channel. Add `-100` before channel/superGroup id. In short don't add bot or account id!
 
@@ -684,6 +685,12 @@ machine example.workers.dev password index_password
 Where host is the name of extractor (eg. instagram, Twitch). Multiple accounts of different hosts can be added each separated by a new line.
 
 -----
+
+ >
+## All Thanks To Our Contributors
+<a href="https://github.com/anasty17/mirror-leech-telegram-bot/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=anasty17/mirror-leech-telegram-bot" />
+</a>
 
 ## Donations
 

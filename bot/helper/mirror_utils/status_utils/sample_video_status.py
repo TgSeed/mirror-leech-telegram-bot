@@ -1,8 +1,8 @@
-from bot import LOGGER, subprocess_lock
+from bot import LOGGER
 from bot.helper.ext_utils.status_utils import get_readable_file_size, MirrorStatus
 
 
-class SplitStatus:
+class SampleVideoStatus:
     def __init__(self, listener, size, gid):
         self._gid = gid
         self._size = size
@@ -27,7 +27,7 @@ class SplitStatus:
         return "0s"
 
     def status(self):
-        return MirrorStatus.STATUS_SPLITTING
+        return MirrorStatus.STATUS_SAMVID
 
     def processed_bytes(self):
         return 0
@@ -36,13 +36,12 @@ class SplitStatus:
         return self
 
     async def cancel_task(self):
-        LOGGER.info(f"Cancelling Split: {self.listener.name}")
-        async with subprocess_lock:
-            if (
-                self.listener.suproc is not None
-                and self.listener.suproc.returncode is None
-            ):
-                self.listener.suproc.kill()
-            else:
-                self.listener.suproc = "cancelled"
-        await self.listener.onUploadError("splitting stopped by user!")
+        LOGGER.info(f"Cancelling Sample Video: {self.listener.name}")
+        if (
+            self.listener.suproc is not None
+            and self.listener.suproc.returncode is None
+        ):
+            self.listener.suproc.kill()
+        else:
+            self.listener.suproc = "cancelled"
+        await self.listener.onUploadError("Creating sample video stopped by user!")
