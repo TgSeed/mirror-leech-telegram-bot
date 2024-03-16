@@ -1,12 +1,38 @@
+import threading
 from aiofiles import open as aiopen
 from aiofiles.os import path as aiopath
-from asyncio import create_subprocess_exec
+from asyncio import create_subprocess_exec, sleep, get_event_loop, ensure_future
 from configparser import ConfigParser
 import os
+import httpx
+from logging import getLogger
 
 from bot import config_dict
 
 RcloneServe = []
+
+LOGGER = getLogger(__name__)
+
+
+async def rclone_watchdog():
+    loop = get_event_loop()
+    loop.call_later(60, lambda: ensure_future(rclone_watchdog()))
+    if len(RcloneServe) == 0:
+        return
+    async with httpx.AsyncClient(verify=False) as client:
+        try:
+            await sleep(60.0)
+            r = await client.get(
+                url=f"http://localhost:{config_dict['RCLONE_SERVE_PORT']}", follow_redirects=True, timeout=20.0
+            )
+            if not ((r.status_code >= 200 and r.status_code < 400) or r.status_code != 404):
+                LOGGER.error(f"Rclone WatchDog: non-successful response from rclone serve: {r.status_code}")
+                await rclone_serve_booter()
+        except httpx.RequestError as exc:
+            LOGGER.error(f"Rclone WatchDog: An error occurred while requesting {exc.request.url!r}.")
+            await rclone_serve_booter()
+
+    return
 
 
 async def rclone_serve_booter():
@@ -59,7 +85,7 @@ async def rclone_serve_booter():
         "rlogserve.txt"
     ]
     if (user := config_dict["RCLONE_SERVE_USER"]) and (
-        pswd := config_dict["RCLONE_SERVE_PASS"]
+            pswd := config_dict["RCLONE_SERVE_PASS"]
     ):
         cmd.extend(("--user", user, "--pass", pswd))
     rcs = await create_subprocess_exec(*cmd)
