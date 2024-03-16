@@ -1,46 +1,35 @@
 import threading
 from aiofiles import open as aiopen
 from aiofiles.os import path as aiopath
-from asyncio import create_subprocess_exec, sleep, create_task, ensure_future
+from asyncio import create_subprocess_exec, sleep, get_event_loop, ensure_future
 from configparser import ConfigParser
 import os
 import httpx
+from logging import getLogger
 
 from bot import config_dict
 
 RcloneServe = []
 
-
-class Timer:
-    def __init__(self, timeout, callback):
-        self._timeout = timeout
-        self._callback = callback
-        self._task = ensure_future(self._job())
-
-    async def _job(self):
-        await sleep(self._timeout)
-        await self._callback()
-
-    def cancel(self):
-        self._task.cancel()
+LOGGER = getLogger(__name__)
 
 
 async def rclone_watchdog():
-    t = Timer(60.0, rclone_watchdog)  # set timer for two seconds
-    if not config_dict["RCLONE_SERVE_URL"] or not await aiopath.exists("rclone.conf") or len(RcloneServe) == 0:
+    loop = get_event_loop()
+    loop.call_later(60, lambda: ensure_future(rclone_watchdog()))
+    if len(RcloneServe) == 0:
         return
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(verify=False) as client:
         try:
             await sleep(60.0)
             r = await client.get(
-                url="http://localhost:" + config_dict['RCLONE_SERVE_PORT'], verify=False,
-                follow_redirects=True, timeout=20.0
+                url=f"http://localhost:{config_dict['RCLONE_SERVE_PORT']}", follow_redirects=True, timeout=20.0
             )
             if not ((r.status_code >= 200 and r.status_code < 400) or r.status_code != 404):
-                print(f"Rclone WatchDog: non-successful response from rclone serve: {r.status_code}")
+                LOGGER.error(f"Rclone WatchDog: non-successful response from rclone serve: {r.status_code}")
                 await rclone_serve_booter()
         except httpx.RequestError as exc:
-            print(f"Rclone WatchDog: An error occurred while requesting {exc.request.url!r}.")
+            LOGGER.error(f"Rclone WatchDog: An error occurred while requesting {exc.request.url!r}.")
             await rclone_serve_booter()
 
     return
