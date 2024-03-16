@@ -21,6 +21,7 @@ natsort
 pillow
 psutil
 pycryptodome
+pycryptodomex
 pymongo
 pyrogram
 python-dotenv
