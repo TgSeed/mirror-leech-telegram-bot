@@ -10,6 +10,8 @@ log.txt
 accounts/*
 Thumbnails/*
 rclone/*
+tokens/*
+sabnzbd/*
 list_drives.txt
 cookies.txt
 downloads

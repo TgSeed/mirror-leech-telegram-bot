@@ -1,4 +1,4 @@
-from aiohttp import ClientSession
+from httpx import AsyncClient
 from asyncio import wait_for, Event, wrap_future
 from functools import partial
 from pyrogram.filters import command, regex, user
@@ -244,16 +244,16 @@ def extract_info(link, options):
 
 async def _mdisk(link, name):
     key = link.split("/")[-1]
-    async with ClientSession() as session:
-        async with session.get(
+    async with AsyncClient(verify=False) as client:
+        resp = await client.get(
             f"https://diskuploader.entertainvideo.com/v1/file/cdnurl?param={key}"
-        ) as resp:
-            if resp.status == 200:
-                resp_json = await resp.json()
-                link = resp_json["source"]
-                if not name:
-                    name = resp_json["filename"]
-            return name, link
+        )
+    if resp.status_code == 200:
+        resp_json = resp.json()
+        link = resp_json["source"]
+        if not name:
+            name = resp_json["filename"]
+    return name, link
 
 
 class YtDlp(TaskListener):
@@ -264,6 +264,7 @@ class YtDlp(TaskListener):
         _=None,
         isLeech=False,
         __=None,
+        ___=None,
         sameDir=None,
         bulk=None,
         multiTag=None,
@@ -298,6 +299,7 @@ class YtDlp(TaskListener):
             "-f": False,
             "-fd": False,
             "-fu": False,
+            "-ml": False,
             "-i": 0,
             "-sp": 0,
             "link": "",
@@ -335,6 +337,7 @@ class YtDlp(TaskListener):
         self.convertAudio = args["-ca"]
         self.convertVideo = args["-cv"]
         self.nameSub = args["-ns"]
+        self.mixedLeech = args["-ml"]
 
         isBulk = args["-b"]
         folder_name = args["-m"]

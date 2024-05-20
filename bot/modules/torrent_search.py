@@ -1,4 +1,4 @@
-from aiohttp import ClientSession
+from httpx import AsyncClient
 from html import escape
 from pyrogram.filters import command, regex
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
@@ -19,15 +19,14 @@ TELEGRAPH_LIMIT = 300
 
 
 async def initiate_search_tools():
-    qbclient = await sync_to_async(get_qb_client)
+    qbclient = get_qb_client()
     qb_plugins = await sync_to_async(qbclient.search_plugins)
     if SEARCH_PLUGINS := config_dict["SEARCH_PLUGINS"]:
         globals()["PLUGINS"] = []
-        src_plugins = eval(SEARCH_PLUGINS)
         if qb_plugins:
             names = [plugin["name"] for plugin in qb_plugins]
             await sync_to_async(qbclient.search_uninstall_plugin, names=names)
-        await sync_to_async(qbclient.search_install_plugin, src_plugins)
+        await sync_to_async(qbclient.search_install_plugin, SEARCH_PLUGINS)
     elif qb_plugins:
         for plugin in qb_plugins:
             await sync_to_async(qbclient.search_uninstall_plugin, names=plugin["name"])
@@ -37,9 +36,9 @@ async def initiate_search_tools():
     if SEARCH_API_LINK := config_dict["SEARCH_API_LINK"]:
         global SITES
         try:
-            async with ClientSession() as c:
-                async with c.get(f"{SEARCH_API_LINK}/api/v1/sites") as res:
-                    data = await res.json()
+            async with AsyncClient() as client:
+                response = await client.get(f"{SEARCH_API_LINK}/api/v1/sites")
+                data = response.json()
             SITES = {
                 str(site): str(site).capitalize() for site in data["supported_sites"]
             }
@@ -76,9 +75,9 @@ async def _search(key, site, message, method):
                     f"{SEARCH_API_LINK}/api/v1/recent?site={site}&limit={SEARCH_LIMIT}"
                 )
         try:
-            async with ClientSession() as c:
-                async with c.get(api) as res:
-                    search_results = await res.json()
+            async with AsyncClient() as client:
+                response = await client.get(api)
+                search_results = response.json()
             if "error" in search_results or search_results["total"] == 0:
                 await editMessage(
                     message,
@@ -100,7 +99,7 @@ async def _search(key, site, message, method):
             return
     else:
         LOGGER.info(f"PLUGINS Searching: {key} from {site}")
-        client = await sync_to_async(get_qb_client)
+        client = get_qb_client()
         search = await sync_to_async(
             client.search_start, pattern=key, plugins=site, category="all"
         )
@@ -224,7 +223,7 @@ def _api_buttons(user_id, method):
 async def _plugin_buttons(user_id):
     buttons = ButtonMaker()
     if not PLUGINS:
-        qbclient = await sync_to_async(get_qb_client)
+        qbclient = get_qb_client()
         pl = await sync_to_async(qbclient.search_plugins)
         for name in pl:
             PLUGINS.append(name["name"])

@@ -1,4 +1,4 @@
-from aiohttp import ClientSession
+from httpx import AsyncClient
 from asyncio import (
     create_subprocess_exec,
     create_subprocess_shell,
@@ -57,7 +57,7 @@ def create_help_buttons():
 
 
 def bt_selection_buttons(id_):
-    gid = id_[:12] if len(id_) > 20 else id_
+    gid = id_[:12] if len(id_) > 25 else id_
     pincode = "".join([n for n in id_ if n.isdigit()][:4])
     buttons = ButtonMaker()
     BASE_URL = config_dict["BASE_URL"]
@@ -68,8 +68,8 @@ def bt_selection_buttons(id_):
         buttons.ubutton(
             "Select Files", f"{BASE_URL}/app/files/{id_}?pin_code={pincode}"
         )
-    buttons.ibutton("Done Selecting", f"btsel done {gid} {id_}")
-    buttons.ibutton("Cancel", f"btsel cancel {gid}")
+    buttons.ibutton("Done Selecting", f"sel done {gid} {id_}")
+    buttons.ibutton("Cancel", f"sel cancel {gid}")
     return buttons.build_menu(2)
 
 
@@ -105,6 +105,7 @@ def arg_parser(items, arg_base):
         "-fd",
         "-fu",
         "-sync",
+        "-ml",
     }
     t = len(items)
     i = 0
@@ -118,7 +119,7 @@ def arg_parser(items, arg_base):
             if (
                 i + 1 == t
                 and part in bool_arg_set
-                or part in ["-s", "-j", "-f", "-fd", "-fu", "-sync"]
+                or part in ["-s", "-j", "-f", "-fd", "-fu", "-sync", "-ml"]
             ):
                 arg_base[part] = True
             else:
@@ -159,9 +160,9 @@ def getSizeBytes(size):
 
 async def get_content_type(url):
     try:
-        async with ClientSession() as session:
-            async with session.get(url, allow_redirects=True, ssl=False) as response:
-                return response.headers.get("Content-Type")
+        async with AsyncClient() as client:
+            response = await client.get(url, allow_redirects=True, verify=False)
+            return response.headers.get("Content-Type")
     except:
         return None
 

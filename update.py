@@ -6,10 +6,15 @@ from logging import (
     basicConfig,
     error as log_error,
     info as log_info,
+    getLogger,
+    ERROR,
 )
 from os import path, environ, remove
-from pymongo import MongoClient
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
 from subprocess import run as srun
+
+getLogger("pymongo").setLevel(ERROR)
 
 if path.exists("log.txt"):
     with open("log.txt", "r+") as f:
@@ -46,16 +51,16 @@ if len(DATABASE_URL) == 0:
 
 if DATABASE_URL is not None:
     try:
-        conn = MongoClient(DATABASE_URL)
+        conn = MongoClient(DATABASE_URL, server_api=ServerApi("1"))
         db = conn.mltb
         old_config = db.settings.deployConfig.find_one({"_id": bot_id})
         config_dict = db.settings.config.find_one({"_id": bot_id})
         if old_config is not None:
             del old_config["_id"]
         if (
-                old_config is not None
-                and old_config == dict(dotenv_values("config.env"))
-                or old_config is None
+            old_config is not None
+            and old_config == dict(dotenv_values("config.env"))
+            or old_config is None
         ) and config_dict is not None:
             environ["UPSTREAM_REPO"] = config_dict["UPSTREAM_REPO"]
             environ["UPSTREAM_BRANCH"] = config_dict["UPSTREAM_BRANCH"]

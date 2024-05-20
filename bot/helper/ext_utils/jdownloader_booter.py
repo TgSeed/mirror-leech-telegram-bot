@@ -1,6 +1,9 @@
-from aiofiles.os import path, makedirs
+from aiofiles.os import path, makedirs, listdir, rename
+from aioshutil import rmtree
 from json import dump
 from random import randint
+from asyncio import sleep
+from re import match
 
 from bot import config_dict, LOGGER, jd_lock, bot_name
 from bot.helper.ext_utils.bot_utils import (
@@ -63,6 +66,16 @@ class JDownloader(Myjdapi):
         ) as sf:
             sf.truncate(0)
             dump(jdata, sf)
+        if not await path.exists("/JDownloader/JDownloader.jar"):
+            pattern = r"JDownloader\.jar\.backup.\d$"
+            for filename in await listdir("/JDownloader"):
+                if match(pattern, filename):
+                    await rename(
+                        f"/JDownloader/{filename}", "/JDownloader/JDownloader.jar"
+                    )
+                    break
+            await rmtree("/JDownloader/update")
+            await rmtree("/JDownloader/tmp")
         cmd = "java -Dsun.jnu.encoding=UTF-8 -Dfile.encoding=UTF-8 -Djava.awt.headless=true -jar /JDownloader/JDownloader.jar"
         _, __, code = await cmd_exec(cmd, shell=True)
         if code != -9:
@@ -94,12 +107,13 @@ class JDownloader(Myjdapi):
 
     async def connectToDevice(self):
         self.error = "Connecting to device..."
+        await sleep(0.5)
         while True:
             self.device = None
             if not config_dict["JD_EMAIL"] or not config_dict["JD_PASS"]:
                 self.error = "JDownloader Credentials not provided!"
                 await cmd_exec(["pkill", "-9", "-f", "java"])
-                return
+                return False
             try:
                 await self.update_devices()
                 if not (devices := self.list_devices()):
@@ -116,6 +130,7 @@ class JDownloader(Myjdapi):
         await self.device.enable_direct_connection()
         self.error = ""
         LOGGER.info("JDownloader Device have been Connected!")
+        return True
 
 
 jdownloader = JDownloader()

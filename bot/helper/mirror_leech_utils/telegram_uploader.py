@@ -54,10 +54,12 @@ class TgUploader:
         self._lprefix = ""
         self._media_group = False
         self._is_private = False
+        self._sent_msg = None
+        self._user_session = self._listener.userTransmission
 
     async def _upload_progress(self, current, _):
         if self._listener.isCancelled:
-            if self._listener.userTransmission:
+            if self._user_session:
                 user.stop_transmission()
             else:
                 self._listener.client.stop_transmission()
@@ -87,7 +89,7 @@ class TgUploader:
                 else self._listener.message.text.lstrip("/")
             )
             try:
-                if self._listener.userTransmission:
+                if self._user_session:
                     self._sent_msg = await user.send_message(
                         chat_id=self._listener.upDest,
                         text=msg,
@@ -105,7 +107,7 @@ class TgUploader:
             except Exception as e:
                 await self._listener.onUploadError(str(e))
                 return False
-        elif self._listener.userTransmission:
+        elif self._user_session:
             self._sent_msg = await user.get_messages(
                 chat_id=self._listener.message.chat.id, message_ids=self._listener.mid
             )
@@ -200,6 +202,15 @@ class TgUploader:
         )[-1]
 
     async def _send_media_group(self, subkey, key, msgs):
+        for index, msg in enumerate(msgs):
+            if self._listener.mixedLeech or not self._user_session:
+                msgs[index] = await self._listener.client.get_messages(
+                    chat_id=msg[0], message_ids=msg[1]
+                )
+            else:
+                msgs[index] = await user.get_messages(
+                    chat_id=msg[0], message_ids=msg[1]
+                )
         msgs_list = await msgs[0].reply_to_message.reply_media_group(
             media=self._get_input_media(subkey, key),
             quote=True,
@@ -260,6 +271,18 @@ class TgUploader:
                                 for subkey, msgs in list(value.items()):
                                     if len(msgs) > 1:
                                         await self._send_media_group(subkey, key, msgs)
+                    if self._listener.mixedLeech:
+                        self._user_session = f_size > 2097152000
+                        if self._user_session:
+                            self._sent_msg = await user.get_messages(
+                                chat_id=self._sent_msg.chat.id,
+                                message_ids=self._sent_msg.id,
+                            )
+                        else:
+                            self._sent_msg = await self._listener.client.get_messages(
+                                chat_id=self._sent_msg.chat.id,
+                                message_ids=self._sent_msg.id,
+                            )
                     self._last_msg_in_group = False
                     self._last_uploaded = 0
                     await self._upload_file(cap_mono, file_, f_path)
@@ -427,25 +450,38 @@ class TgUploader:
                 if match := re_match(r".+(?=\.0*\d+$)|.+(?=\.part\d+\..+$)", o_path):
                     pname = match.group(0)
                     if pname in self._media_dict[key].keys():
-                        self._media_dict[key][pname].append(self._sent_msg)
+                        self._media_dict[key][pname].append(
+                            [self._sent_msg.chat.id, self._sent_msg.id]
+                        )
                     else:
-                        self._media_dict[key][pname] = [self._sent_msg]
+                        self._media_dict[key][pname] = [
+                            [self._sent_msg.chat.id, self._sent_msg.id]
+                        ]
                     msgs = self._media_dict[key][pname]
                     if len(msgs) == 10:
                         await self._send_media_group(pname, key, msgs)
                     else:
                         self._last_msg_in_group = True
 
-            if (self._thumb is None
+            if (
+                self._thumb is None
                 and thumb is not None
                 and await aiopath.exists(thumb)
             ):
                 await remove(thumb)
-        except FloodWait as f: # for later
+        except FloodWait as f:
             LOGGER.warning(str(f))
-            await sleep(f.value)
+            await sleep(f.value * 1.3)
+            if (
+                self._thumb is None
+                and thumb is not None
+                and await aiopath.exists(thumb)
+            ):
+                await remove(thumb)
+            return await self._upload_file(cap_mono, file, o_path)
         except Exception as err:
-            if (self._thumb is None
+            if (
+                self._thumb is None
                 and thumb is not None
                 and await aiopath.exists(thumb)
             ):

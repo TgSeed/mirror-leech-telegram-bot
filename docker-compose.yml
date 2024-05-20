@@ -23,6 +23,8 @@ services:
     ports:
       - "55770:80"
       - "55771:8080"
+      - "55772:8070"
+      - "55773:8090"
     depends_on:
       - mongodb
     links:

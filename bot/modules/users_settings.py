@@ -100,6 +100,16 @@ async def get_user_settings(from_user):
     else:
         leech_method = "bot"
 
+    if (
+        IS_PREMIUM_USER
+        and user_dict.get("mixed_leech", False)
+        or "mixed_leech" not in user_dict
+        and config_dict["MIXED_LEECH"]
+    ):
+        mixed_leech = "Enabled"
+    else:
+        mixed_leech = "Disabled"
+
     buttons.ibutton("Leech", f"userset {user_id} leech")
 
     buttons.ibutton("Rclone", f"userset {user_id} rclone")
@@ -172,6 +182,7 @@ Media Group is <b>{media_group}</b>
 Leech Prefix is <code>{escape(lprefix)}</code>
 Leech Destination is <code>{leech_dest}</code>
 Leech by <b>{leech_method}</b> session
+Mixed Leech is <b>{mixed_leech}</b>
 Rclone Config <b>{rccmsg}</b>
 Rclone Path is <code>{rccpath}</code>
 Gdrive Token <b>{tokenmsg}</b>
@@ -276,7 +287,12 @@ async def set_option(_, message, pre_event, option):
         user_dict.setdefault("upload_paths", {})
         lines = value.split("/n")
         for line in lines:
-            name, path = line.split(maxsplit=1)
+            data = line.split(maxsplit=1)
+            if len(data) != 2:
+                await sendMessage(message, "Wrong format! Add <name> <path>")
+                await update_user_settings(pre_event)
+                return
+            name, path = data
             user_dict["upload_paths"][name] = path
         value = user_dict["upload_paths"]
     update_user_ldata(user_id, option, value)
@@ -335,6 +351,7 @@ async def edit_user_settings(client, query):
         "media_group",
         "user_transmission",
         "stop_duplicate",
+        "mixed_leech",
     ]:
         update_user_ldata(user_id, data[2], data[3] == "true")
         await query.answer()
@@ -457,6 +474,23 @@ async def edit_user_settings(client, query):
             )
         else:
             leech_method = "bot"
+
+        if (
+            IS_PREMIUM_USER
+            and user_dict.get("mixed_leech", False)
+            or "mixed_leech" not in user_dict
+            and config_dict["MIXED_LEECH"]
+        ):
+            mixed_leech = "Enabled"
+            buttons.ibutton(
+                "Disable Mixed Leech", f"userset {user_id} mixed_leech false"
+            )
+        elif IS_PREMIUM_USER:
+            mixed_leech = "Disabled"
+            buttons.ibutton("Enable Mixed Leech", f"userset {user_id} mixed_leech true")
+        else:
+            mixed_leech = "Disabled"
+
         buttons.ibutton("Back", f"userset {user_id} back")
         buttons.ibutton("Close", f"userset {user_id} close")
         text = f"""<u>Leech Settings for {name}</u>
@@ -468,6 +502,7 @@ Media Group is <b>{media_group}</b>
 Leech Prefix is <code>{escape(lprefix)}</code>
 Leech Destination is <code>{leech_dest}</code>
 Leech by <b>{leech_method}</b> session
+Mixed Leech is <b>{mixed_leech}</b>
 """
         await editMessage(message, text, buttons.build_menu(2))
     elif data[2] == "rclone":
@@ -691,20 +726,23 @@ Check all yt-dlp api options from this <a href='https://github.com/yt-dlp/yt-dlp
     elif data[2] == "name_subtitute":
         await query.answer()
         buttons = ButtonMaker()
-        if user_dict.get(data[2], False):
+        if user_dict.get("name_sub", False):
             buttons.ibutton("Remove Name Subtitute", f"userset {user_id} name_sub")
         buttons.ibutton("Back", f"userset {user_id} back")
         buttons.ibutton("Close", f"userset {user_id} close")
-        emsg = f"""Word Subtitions. You can add pattern instead of normal text. Timeout: 60 sec
-Example: 'text : code : s|mirror : leech|tea :  : s|clone'
-
+        emsg = r"""Word Subtitions. You can add pattern instead of normal text. Timeout: 60 sec
+NOTE: You must add \ before any character, those are the characters: \^$.|?*+()[]{}-
+Example-1: text : code : s|mirror : leech|tea :  : s|clone
 1. text will get replaced by code with sensitive case
 2. mirror will get replaced by leech
 4. tea will get removed with sensitive case
 5. clone will get removed
-
-Your Current Value is {user_dict.get('name_sub') or 'not added yet!'}
+Example-2: \(text\) | \[test\] : test | \\text\\ : text : s
+1. (text) will get removed
+2. [test] will get replaced by test
+3. \text\ will get replaced by text with sensitive case
 """
+        emsg += f"Your Current Value is {user_dict.get('name_sub') or 'not added yet!'}"
         await editMessage(
             message,
             emsg,
