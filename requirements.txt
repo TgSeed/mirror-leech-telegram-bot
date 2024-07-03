@@ -22,7 +22,7 @@ psutil
 pycryptodome
 pycryptodomex
 pymongo
-pyrogram
+git+https://github.com/5hojib/pyrogram-peer-fix.git
 python-dotenv
 python-magic
 qbittorrent-api
