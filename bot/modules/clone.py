@@ -8,7 +8,6 @@ from bot import LOGGER, task_dict, task_dict_lock, bot
 from bot.helper.ext_utils.bot_utils import (
     new_task,
     sync_to_async,
-    new_task,
     cmd_exec,
     arg_parser,
     COMMAND_USAGE,

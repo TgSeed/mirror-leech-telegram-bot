@@ -345,7 +345,12 @@ class TaskConfig:
 
     async def getTag(self, text: list):
         if len(text) > 1 and text[1].startswith("Tag: "):
-            self.tag, id_ = text[1].split("Tag: ")[1].split()
+            user_info = text[1].split("Tag: ")
+            if len(user_info) >= 3:
+                id_ = user_info[-1]
+                self.tag = " ".join(user_info[:-1])
+            else:
+                self.tag, id_ = text[1].split("Tag: ")[1].split()
             self.user = self.message.from_user = await self.client.get_users(id_)
             self.userId = self.user.id
             self.userDict = user_data.get(self.userId, {})
@@ -930,10 +935,12 @@ class TaskConfig:
     async def substitute(self, dl_path):
         if await aiopath.isfile(dl_path):
             up_dir, name = dl_path.rsplit("/", 1)
-            for l in self.nameSub:
-                pattern = l[0]
-                res = l[1] if len(l) > 1 and l[1] else ""
-                sen = len(l) > 2 and l[2] == "s"
+            for substitution in self.nameSub:
+                pattern = substitution[0]
+                res = (
+                    substitution[1] if len(substitution) > 1 and substitution[1] else ""
+                )
+                sen = len(substitution) > 2 and substitution[2] == "s"
                 new_name = sub(rf"{pattern}", res, name, flags=I if sen else 0)
             new_path = ospath.join(up_dir, new_name)
             await move(dl_path, new_path)
@@ -942,10 +949,14 @@ class TaskConfig:
             for dirpath, _, files in await sync_to_async(walk, dl_path, topdown=False):
                 for file_ in files:
                     f_path = ospath.join(dirpath, file_)
-                    for l in self.nameSub:
-                        pattern = l[0]
-                        res = l[1] if len(l) > 1 and l[1] else ""
-                        sen = len(l) > 2 and l[2] == "s"
+                    for substitution in self.nameSub:
+                        pattern = substitution[0]
+                        res = (
+                            substitution[1]
+                            if len(substitution) > 1 and substitution[1]
+                            else ""
+                        )
+                        sen = len(substitution) > 2 and substitution[2] == "s"
                         new_name = sub(rf"{pattern}", res, file_, flags=I if sen else 0)
                     await move(f_path, ospath.join(dirpath, new_name))
             return dl_path

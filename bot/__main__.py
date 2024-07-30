@@ -58,7 +58,7 @@ from .modules import (
     bot_settings,
     help,
     force_start,
-)
+)  # noqa: F401
 
 
 async def stats(_, message):

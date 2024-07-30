@@ -263,6 +263,7 @@ class gdriveList(GoogleDriveHelper):
             await self.get_items()
         elif len(drives) == 0:
             msg = "Service accounts Doesn't have access to any drive!"
+            buttons = ButtonMaker()
             if self._token_user and self._token_owner:
                 buttons.ibutton("Back", "gdq back dr", position="footer")
             buttons.ibutton("Cancel", "gdq cancel", position="footer")

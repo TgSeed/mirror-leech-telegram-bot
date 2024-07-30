@@ -37,7 +37,7 @@ async def _onDownloadStarted(api, gid):
                     if download.is_removed or download.followed_by_ids:
                         await deleteMessage(meta)
                         break
-                    download = await sync_to_async(download.live)
+                    await sync_to_async(download.update)
         return
     else:
         LOGGER.info(f"onDownloadStarted: {download.name} - Gid: {gid}")
@@ -46,7 +46,7 @@ async def _onDownloadStarted(api, gid):
     if task := await getTaskByGid(gid):
         download = await sync_to_async(api.get_download, gid)
         await sleep(2)
-        download = await sync_to_async(download.live)
+        await sync_to_async(download.update)
         task.listener.name = download.name
         msg, button = await stop_duplicate_check(task.listener)
         if msg:
@@ -127,10 +127,10 @@ async def _onBtDownloadComplete(api, gid):
         await task.listener.onDownloadComplete()
         if Intervals["stopAll"]:
             return
-        download = await sync_to_async(download.live)
+        await sync_to_async(download.update)
         if task.listener.seed:
             if download.is_complete:
-                if task := await getTaskByGid(gid):
+                if await getTaskByGid(gid):
                     LOGGER.info(f"Cancelling Seed: {download.name}")
                     await task.listener.onUploadError(
                         f"Seeding stopped with Ratio: {task.ratio()} and Time: {task.seeding_time()}"
