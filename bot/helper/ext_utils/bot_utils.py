@@ -16,6 +16,8 @@ from bot.helper.ext_utils.help_messages import (
 )
 from bot.helper.ext_utils.telegraph_helper import telegraph
 from bot.helper.telegram_helper.button_build import ButtonMaker
+from os import environ
+import ast
 
 COMMAND_USAGE = {}
 
@@ -177,10 +179,33 @@ async def retry_function(func, *args, **kwargs):
 
 
 async def cmd_exec(cmd, shell=False):
+    my_env = environ.copy()
+    isRcloneCommand = False
+    if isinstance(cmd, list): 
+        if cmd[0] == "rclone":
+            isRcloneCommand = True
+    elif isinstance(cmd, str):
+        if cmd.startswith("rclone"):
+            isRcloneCommand = True
+    
+    if isRcloneCommand:
+        RcloneEnvStr = environ.get("RCLONE_ENV", "")
+        RcloneEnv = {}
+        try:
+            if len(RcloneEnvStr) == 0:
+                RcloneEnv = {}
+            else:
+                RcloneEnv = ast.literal_eval(RcloneEnvStr)
+        except:
+            RcloneEnv = {}
+        if isinstance(RcloneEnvStr, dict) and len(RcloneEnv) > 0:
+            for key, value in RcloneEnv.items():
+                my_env[key] = value
+    
     if shell:
-        proc = await create_subprocess_shell(cmd, stdout=PIPE, stderr=PIPE)
+        proc = await create_subprocess_shell(cmd, stdout=PIPE, stderr=PIPE, env=my_env)
     else:
-        proc = await create_subprocess_exec(*cmd, stdout=PIPE, stderr=PIPE)
+        proc = await create_subprocess_exec(*cmd, stdout=PIPE, stderr=PIPE, env=my_env)
     stdout, stderr = await proc.communicate()
     try:
         stdout = stdout.decode().strip()
