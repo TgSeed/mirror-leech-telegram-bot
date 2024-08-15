@@ -1,3 +1,4 @@
+import ast
 from aiofiles import open as aiopen
 from aiofiles.os import path as aiopath, makedirs, listdir
 from asyncio import create_subprocess_exec, gather
@@ -15,6 +16,7 @@ from bot.helper.ext_utils.files_utils import (
     count_files_and_folders,
     clean_unwanted,
 )
+from os import environ
 
 LOGGER = getLogger(__name__)
 
@@ -228,8 +230,31 @@ class RcloneTransferHelper:
             link = ""
         return link, destination
 
-    async def _start_upload(self, cmd, remote_type):
-        self._proc = await create_subprocess_exec(*cmd, stdout=PIPE, stderr=PIPE)
+    async def _start_upload(self, cmd, remote_type):        
+        my_env = environ.copy()
+        isRcloneCommand = False
+        if isinstance(cmd, list): 
+            if cmd[0] == "rclone":
+                isRcloneCommand = True
+        elif isinstance(cmd, str):
+            if cmd.startswith("rclone"):
+                isRcloneCommand = True
+        
+        if isRcloneCommand:
+            RcloneEnvStr = environ.get("RCLONE_ENV", "")
+            RcloneEnv = {}
+            try:
+                if len(RcloneEnvStr) == 0:
+                    RcloneEnv = {}
+                else:
+                    RcloneEnv = ast.literal_eval(RcloneEnvStr)
+            except:
+                RcloneEnv = {}
+            if isinstance(RcloneEnv, dict) and len(RcloneEnv) > 0:
+                for key, value in RcloneEnv.items():
+                    my_env[key] = value
+        
+        self._proc = await create_subprocess_exec(*cmd, stdout=PIPE, stderr=PIPE, env=my_env)
         _, return_code = await gather(self._progress(), self._proc.wait())
 
         if self._listener.isCancelled:

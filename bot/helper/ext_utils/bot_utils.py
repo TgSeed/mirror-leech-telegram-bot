@@ -198,7 +198,7 @@ async def cmd_exec(cmd, shell=False):
                 RcloneEnv = ast.literal_eval(RcloneEnvStr)
         except:
             RcloneEnv = {}
-        if isinstance(RcloneEnvStr, dict) and len(RcloneEnv) > 0:
+        if isinstance(RcloneEnv, dict) and len(RcloneEnv) > 0:
             for key, value in RcloneEnv.items():
                 my_env[key] = value
     
