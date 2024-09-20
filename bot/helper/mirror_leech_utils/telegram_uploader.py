@@ -17,7 +17,6 @@ from pyrogram.types import (
     InputMediaVideo,
     InputMediaDocument,
     InputMediaPhoto,
-    LinkPreviewOptions,
 )
 from tenacity import (
     retry,
@@ -34,8 +33,9 @@ from ..telegram_helper.message_utils import delete_message
 from ..ext_utils.media_utils import (
     get_media_info,
     get_document_type,
-    create_thumbnail,
-    get_audio_thumb,
+    get_video_thumbnail,
+    get_audio_thumbnail,
+    get_multiple_frames_thumbnail,
 )
 
 LOGGER = getLogger(__name__)
@@ -98,7 +98,7 @@ class TelegramUploader:
                     self._sent_msg = await user.send_message(
                         chat_id=self._listener.up_dest,
                         text=msg,
-                        link_preview_options=LinkPreviewOptions(is_disabled=True),
+                        disable_web_page_preview=True,
                         message_thread_id=self._listener.chat_thread_id,
                         disable_notification=True,
                     )
@@ -106,7 +106,7 @@ class TelegramUploader:
                     self._sent_msg = await self._listener.client.send_message(
                         chat_id=self._listener.up_dest,
                         text=msg,
-                        link_preview_options=LinkPreviewOptions(is_disabled=True),
+                        disable_web_page_preview=True,
                         message_thread_id=self._listener.chat_thread_id,
                         disable_notification=True,
                     )
@@ -122,7 +122,7 @@ class TelegramUploader:
                 self._sent_msg = await user.send_message(
                     chat_id=self._listener.message.chat.id,
                     text="Deleted Cmd Message! Don't delete the cmd message again!",
-                    link_preview_options=LinkPreviewOptions(is_disabled=True),
+                    disable_web_page_preview=True,
                     disable_notification=True,
                 )
         else:
@@ -200,13 +200,15 @@ class TelegramUploader:
             InputMediaPhoto(ospath.join(dirpath, p), p.rsplit("/", 1)[-1])
             for p in outputs
         ]
-        self._sent_msg = (
-            await self._sent_msg.reply_media_group(
-                media=inputs,
-                quote=True,
-                disable_notification=True,
-            )
-        )[-1]
+        for i in range(0, len(inputs), 10):
+            batch = inputs[i : i + 10]
+            self._sent_msg = (
+                await self._sent_msg.reply_media_group(
+                    media=batch,
+                    quote=True,
+                    disable_notification=True,
+                )
+            )[-1]
 
     async def _send_media_group(self, subkey, key, msgs):
         for index, msg in enumerate(msgs):
@@ -373,7 +375,7 @@ class TelegramUploader:
                 if await aiopath.isfile(thumb_path):
                     thumb = thumb_path
                 elif is_audio and not is_video:
-                    thumb = await get_audio_thumb(self._up_path)
+                    thumb = await get_audio_thumbnail(self._up_path)
 
             if (
                 self._listener.as_doc
@@ -382,7 +384,7 @@ class TelegramUploader:
             ):
                 key = "documents"
                 if is_video and thumb is None:
-                    thumb = await create_thumbnail(self._up_path, None)
+                    thumb = await get_video_thumbnail(self._up_path, None)
 
                 if self._listener.is_cancelled:
                     return
@@ -398,8 +400,14 @@ class TelegramUploader:
             elif is_video:
                 key = "videos"
                 duration = (await get_media_info(self._up_path))[0]
+                if thumb is None and self._listener.thumbnail_layout:
+                    thumb = await get_multiple_frames_thumbnail(
+                        self._up_path,
+                        self._listener.thumbnail_layout,
+                        self._listener.screen_shots,
+                    )
                 if thumb is None:
-                    thumb = await create_thumbnail(self._up_path, duration)
+                    thumb = await get_video_thumbnail(self._up_path, duration)
                 if thumb is not None:
                     with Image.open(thumb) as img:
                         width, height = img.size

@@ -81,6 +81,8 @@ class Mirror(TaskListener):
         input_list = text[0].split(" ")
 
         args = {
+            "-doc": False,
+            "-med": False,
             "-d": False,
             "-j": False,
             "-s": False,
@@ -107,6 +109,7 @@ class Mirror(TaskListener):
             "-ca": "",
             "-cv": "",
             "-ns": "",
+            "-tl": "",
         }
 
         arg_parser(input_list[1:], args)
@@ -131,6 +134,9 @@ class Mirror(TaskListener):
         self.convert_video = args["-cv"]
         self.name_sub = args["-ns"]
         self.mixed_leech = args["-ml"]
+        self.thumbnail_layout = args["-tl"]
+        self.as_doc = args["-doc"]
+        self.as_med = args["-med"]
 
         headers = args["-h"]
         is_bulk = args["-b"]
@@ -186,7 +192,7 @@ class Mirror(TaskListener):
         if len(self.bulk) != 0:
             del self.bulk[0]
 
-        self.run_multi(input_list, folder_name, Mirror)
+        await self.run_multi(input_list, folder_name, Mirror)
 
         await self.get_tag(text)
 
@@ -275,7 +281,7 @@ class Mirror(TaskListener):
             self.remove_from_same_dir()
             return
 
-        if self.link:
+        if len(self.link) > 0:
             LOGGER.info(self.link)
 
         try:

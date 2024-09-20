@@ -10,7 +10,7 @@ from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from time import time
 
 from bot import scheduler, rss_dict, LOGGER, config_dict, bot
-from ..helper.ext_utils.bot_utils import handler_new_task, arg_parser
+from ..helper.ext_utils.bot_utils import new_task, arg_parser
 from ..helper.ext_utils.db_handler import database
 from ..helper.ext_utils.exceptions import RssShutdownException
 from ..helper.ext_utils.help_messages import RSS_HELP_MESSAGE
@@ -60,13 +60,13 @@ async def update_rss_menu(query):
     await edit_message(query.message, msg, button)
 
 
-@handler_new_task
+@new_task
 async def get_rss_menu(_, message):
     msg, button = await rss_menu(message)
     await send_message(message, msg, button)
 
 
-@handler_new_task
+@new_task
 async def rss_sub(_, message, pre_event):
     user_id = message.from_user.id
     handler_dict[user_id] = False
@@ -202,7 +202,7 @@ async def get_user_id(title):
         )
 
 
-@handler_new_task
+@new_task
 async def rss_update(_, message, pre_event, state):
     user_id = message.from_user.id
     handler_dict[user_id] = False
@@ -305,7 +305,7 @@ async def rss_list(query, start, all_users=False):
     await edit_message(query.message, list_feed, button)
 
 
-@handler_new_task
+@new_task
 async def rss_get(_, message, pre_event):
     user_id = message.from_user.id
     handler_dict[user_id] = False
@@ -362,7 +362,7 @@ async def rss_get(_, message, pre_event):
     await update_rss_menu(pre_event)
 
 
-@handler_new_task
+@new_task
 async def rss_edit(_, message, pre_event):
     user_id = message.from_user.id
     handler_dict[user_id] = False
@@ -416,7 +416,7 @@ async def rss_edit(_, message, pre_event):
     await update_rss_menu(pre_event)
 
 
-@handler_new_task
+@new_task
 async def rss_delete(_, message, pre_event):
     handler_dict[message.from_user.id] = False
     users = message.text.split()
@@ -449,7 +449,7 @@ async def event_handler(client, query, pfunc):
     client.remove_handler(*handler)
 
 
-@handler_new_task
+@new_task
 async def rss_listener(client, query):
     user_id = query.from_user.id
     message = query.message
@@ -644,7 +644,8 @@ Timeout: 60 sec. Argument -c for command and arguments
 
 
 async def rss_monitor():
-    if not config_dict["RSS_CHAT"]:
+    chat = config_dict["RSS_CHAT"]
+    if not chat:
         LOGGER.warning("RSS_CHAT not added! Shutting down rss scheduler...")
         scheduler.shutdown(wait=False)
         return
@@ -652,6 +653,18 @@ async def rss_monitor():
         scheduler.pause()
         return
     all_paused = True
+    rss_topic_id = rss_chat_id = None
+    if isinstance(chat, int):
+        rss_chat_id = chat
+    elif "|" in chat:
+        rss_chat_id, rss_topic_id = list(
+            map(
+                lambda x: int(x) if x.lstrip("-").isdigit() else x,
+                chat.split("|", 1),
+            )
+        )
+    elif chat.lstrip("-").isdigit():
+        rss_chat_id = int(chat)
     for user, items in list(rss_dict.items()):
         for title, data in items.items():
             try:
@@ -737,7 +750,7 @@ async def rss_monitor():
                     feed_msg += (
                         f"\n<b>Tag: </b><code>{data['tag']}</code> <code>{user}</code>"
                     )
-                    await send_rss(feed_msg)
+                    await send_rss(feed_msg, rss_chat_id, rss_topic_id)
                     feed_count += 1
                 async with rss_dict_lock:
                     if user not in rss_dict or not rss_dict[user].get(title, False):
@@ -770,6 +783,9 @@ def add_job():
         replace_existing=True,
     )
 
+
+add_job()
+scheduler.start()
 
 bot.add_handler(
     MessageHandler(
